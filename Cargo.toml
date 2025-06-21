@@ -2,6 +2,7 @@
 name = "cerberus"
 version = "0.1.0"
 edition = "2024"
+description = "A system integrity checker that unlocks a LUKS-encrypted disk when the integrity of the system is verified."
 
 [dependencies]
 notify = "8.0.0"
