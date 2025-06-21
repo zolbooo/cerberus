@@ -1,1 +1,4 @@
 /target
+
+# ed25519 DER-encoded private keys
+*.der
