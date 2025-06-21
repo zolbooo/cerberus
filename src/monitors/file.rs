@@ -1,3 +1,4 @@
+use crate::crypto::hash;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::error::Error;
 use std::path::Path;
@@ -8,20 +9,6 @@ use std::{io, thread};
 #[derive(Debug)]
 pub struct FileIntegrityEvent {
     pub hash: [u8; 32],
-}
-
-fn create_file_integrity_event(
-    file_path: &Path,
-) -> Result<FileIntegrityEvent, Box<dyn std::error::Error>> {
-    use sha2::{Digest, Sha256};
-    use std::fs;
-
-    let mut hasher = Sha256::new();
-    let mut file = fs::File::open(file_path)?;
-    io::copy(&mut file, &mut hasher)?;
-    let hash = hasher.finalize();
-
-    Ok(FileIntegrityEvent { hash: hash.into() })
 }
 
 /**
@@ -61,10 +48,10 @@ pub fn monitor_file_integrity(
         let handle_file_event = |last_known_hash: &mut [u8; 32]| -> Result<(), Box<dyn Error>> {
             let file_event = file_event_rx.recv()??;
             if file_event.kind.is_modify() {
-                let integrity_event = create_file_integrity_event(&file_path)?;
-                if &integrity_event.hash != last_known_hash {
-                    *last_known_hash = integrity_event.hash;
-                    integrity_event_tx.send(integrity_event)?;
+                let file_hash = hash::sha256_file(&file_path)?;
+                if &file_hash != last_known_hash {
+                    *last_known_hash = file_hash;
+                    integrity_event_tx.send(FileIntegrityEvent { hash: file_hash })?;
                 }
             }
             Ok(())

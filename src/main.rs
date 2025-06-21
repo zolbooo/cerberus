@@ -1,3 +1,4 @@
+mod crypto;
 mod monitors;
 
 const WATCH_FILE: &str = "watch.txt";
