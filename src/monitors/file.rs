@@ -58,18 +58,23 @@ pub fn monitor_file_integrity(
             return;
         }
 
-        let handle_file_event = || -> Result<(), Box<dyn Error>> {
+        let handle_file_event = |last_known_hash: &mut [u8; 32]| -> Result<(), Box<dyn Error>> {
             let file_event = file_event_rx.recv()??;
             if file_event.kind.is_modify() {
                 let integrity_event = create_file_integrity_event(&file_path)?;
-                integrity_event_tx.send(integrity_event)?;
+                if &integrity_event.hash != last_known_hash {
+                    *last_known_hash = integrity_event.hash;
+                    integrity_event_tx.send(integrity_event)?;
+                }
             }
             Ok(())
         };
 
         init_result_tx.send(Ok(())).unwrap();
+
+        let mut last_known_hash: [u8; 32] = [0; 32];
         while thread_stop_signal.load(Ordering::Acquire) == false {
-            let _ = handle_file_event();
+            let _ = handle_file_event(&mut last_known_hash);
         }
     });
 
