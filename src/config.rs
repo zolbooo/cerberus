@@ -1,10 +1,8 @@
-use ed25519_dalek::{SigningKey, ed25519::signature::SignerMut, pkcs8::DecodePrivateKey};
+use ed25519_dalek::{SigningKey, ed25519::signature::SignerMut};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct InputConfig {
-    signing_key_path: String,
-}
+pub struct InputConfig {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -19,10 +17,8 @@ pub struct SignedConfig {
 
 pub fn prepare_signed_config(
     input: InputConfig,
+    signing_key: &mut SigningKey,
 ) -> Result<SignedConfig, Box<dyn std::error::Error>> {
-    let signing_key_der = std::fs::read(input.signing_key_path)?;
-    let mut signing_key = SigningKey::from_pkcs8_der(signing_key_der.as_slice())?;
-
     let executable_path = std::env::current_exe()?;
     let executable_bytes = std::fs::read(executable_path)?;
     let app_signature = signing_key.sign(executable_bytes.as_slice());
