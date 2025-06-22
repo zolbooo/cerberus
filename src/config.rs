@@ -51,3 +51,42 @@ pub fn load_verified_config(config_path: &Path) -> Result<Config, Box<dyn std::e
     config.verify_executable_signature()?;
     return Ok(config);
 }
+
+mod test {
+    use super::*;
+    use ed25519_dalek::{
+        SigningKey, VerifyingKey,
+        pkcs8::{DecodePrivateKey, DecodePublicKey},
+    };
+
+    fn get_private_key() -> SigningKey {
+        SigningKey::from_pkcs8_der(include_bytes!("test/signing-key")).unwrap()
+    }
+    fn get_public_key() -> VerifyingKey {
+        VerifyingKey::from_public_key_der(include_bytes!("test/signing-key.pub")).unwrap()
+    }
+
+    #[test]
+    fn test_prepare_signed_config() {
+        let input_config = InputConfig {};
+        let signed_config = prepare_signed_config(input_config, &mut get_private_key());
+        assert!(signed_config.is_ok());
+    }
+
+    #[test]
+    fn test_signed_config_signature() {
+        let input_config = InputConfig {};
+        let signed_config = prepare_signed_config(input_config, &mut get_private_key());
+        assert!(signed_config.is_ok());
+        let signed_config = signed_config.unwrap();
+
+        let signature = Signature::try_from(signed_config.signature.as_slice());
+        assert!(signature.is_ok());
+        let signature = signature.unwrap();
+        assert!(
+            get_public_key()
+                .verify_strict(signed_config.config_bytes.as_slice(), &signature)
+                .is_ok()
+        );
+    }
+}
