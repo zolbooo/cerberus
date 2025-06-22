@@ -5,6 +5,7 @@ mod integrity;
 mod monitors;
 
 fn main() {
+    tracing_subscriber::fmt::init();
     let cmd = clap::Command::new("cerberus")
         .subcommand_required(true)
         .subcommand(
