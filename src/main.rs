@@ -25,6 +25,14 @@ fn main() {
                     .required(true)
                     .value_parser(clap::value_parser!(std::path::PathBuf)),
             ),
+    ).subcommand(
+        clap::command!("test-config")
+            .about("Test a signed configuration file for validity")
+            .arg(
+                clap::arg!(-c --config <FILE> "the signed config file to test")
+                    .required(true)
+                    .value_parser(clap::value_parser!(std::path::PathBuf)),
+            ),
     );
     let matches = cmd.get_matches();
     match matches.subcommand() {
@@ -43,7 +51,14 @@ fn main() {
                     .unwrap()
                     .as_path(),
             );
-            return;
+        }
+        Some(("test-config", matches)) => {
+            cli::config::test_config(
+                matches
+                    .get_one::<std::path::PathBuf>("config")
+                    .unwrap()
+                    .as_path(),
+            );
         }
         _ => unreachable!("clap should ensure we don't get here"),
     };

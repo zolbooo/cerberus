@@ -59,3 +59,32 @@ pub fn gen_config(key_path: &Path, input_config_path: &Path, output_path: &Path)
 
     println!("Signed configuration written to {}", output_path.display());
 }
+
+pub fn test_config(config_path: &Path) {
+    if !config_path.exists() {
+        eprintln!("Config file was not found.");
+        return;
+    }
+    let config_bytes = std::fs::read(config_path);
+    if config_bytes.is_err() {
+        eprintln!("Failed to read config file: {}", config_bytes.unwrap_err());
+        return;
+    }
+    let signed_config = ciborium::from_reader::<crate::config::SignedConfig, &[u8]>(
+        config_bytes.unwrap().as_slice(),
+    );
+    if signed_config.is_err() {
+        eprintln!(
+            "Failed to parse signed config: {}",
+            signed_config.unwrap_err()
+        );
+        return;
+    }
+
+    let config = crate::config::load_verified_config(config_path);
+    if config.is_err() {
+        eprintln!("Failed to load verified config: {}", config.unwrap_err());
+        return;
+    }
+    println!("Configuration is valid and verified.");
+}
