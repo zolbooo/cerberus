@@ -2,6 +2,7 @@ use std::path::Path;
 
 use ed25519_dalek::{Signature, SigningKey, ed25519::signature::SignerMut};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, instrument};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InputConfig {}
@@ -11,10 +12,35 @@ pub struct Config {
     pub app_signature: Vec<u8>,
 }
 
+impl Config {
+    pub fn sign(&self, signing_key: &mut SigningKey) -> SignedConfig {
+        let mut config_bytes = Vec::new();
+        ciborium::into_writer(self, &mut config_bytes).expect("Failed to serialize config");
+        let signature = signing_key.sign(config_bytes.as_slice());
+        SignedConfig {
+            config_bytes,
+            signature: signature.to_bytes().to_vec(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignedConfig {
     config_bytes: Vec<u8>,
     signature: Vec<u8>,
+}
+
+impl SignedConfig {
+    #[instrument(skip_all)]
+    pub fn get_verified_config(&self) -> Result<Config, Box<dyn std::error::Error>> {
+        let signature = Signature::try_from(self.signature.as_slice())?;
+        crate::integrity::APP_PUBLIC_KEY.verify_strict(self.config_bytes.as_slice(), &signature)?;
+        debug!("Config signature verified successfully");
+
+        let config: Config = ciborium::from_reader(self.config_bytes.as_slice())?;
+        config.verify_executable_signature()?;
+        return Ok(config);
+    }
 }
 
 pub fn prepare_signed_config(
@@ -28,28 +54,14 @@ pub fn prepare_signed_config(
     let config = Config {
         app_signature: app_signature.to_bytes().to_vec(),
     };
-    let mut config_bytes = Vec::new();
-    ciborium::into_writer(&config, &mut config_bytes)?;
-    let config_signature = signing_key.sign(config_bytes.as_slice());
-
-    let signed_config = SignedConfig {
-        config_bytes,
-        signature: config_signature.to_bytes().to_vec(),
-    };
-    Ok(signed_config)
+    Ok(config.sign(signing_key))
 }
 
+#[instrument]
 pub fn load_verified_config(config_path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
     let signed_config_bytes = std::fs::read(config_path)?;
     let signed_config: SignedConfig = ciborium::from_reader(signed_config_bytes.as_slice())?;
-
-    let config_signature = Signature::try_from(signed_config.signature.as_slice())?;
-    crate::integrity::APP_PUBLIC_KEY
-        .verify_strict(signed_config.config_bytes.as_slice(), &config_signature)?;
-
-    let config: Config = ciborium::from_reader(signed_config.config_bytes.as_slice())?;
-    config.verify_executable_signature()?;
-    return Ok(config);
+    return signed_config.get_verified_config();
 }
 
 mod test {
