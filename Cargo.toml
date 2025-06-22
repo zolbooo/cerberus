@@ -5,6 +5,7 @@ edition = "2024"
 description = "A system integrity checker that unlocks a LUKS-encrypted disk when the integrity of the system is verified."
 
 [dependencies]
+ciborium = "0.2.2"
 ed25519-dalek = { version = "2.1.1", features = ["pkcs8"] }
 notify = "8.0.0"
 serde = { version = "1.0.219", features = ["derive"] }
