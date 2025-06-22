@@ -2,6 +2,7 @@ use std::path::Path;
 
 use ed25519_dalek::{VerifyingKey, pkcs8::DecodePublicKey};
 
+mod config;
 mod crypto;
 mod integrity;
 mod monitors;
