@@ -7,4 +7,5 @@ description = "A system integrity checker that unlocks a LUKS-encrypted disk whe
 [dependencies]
 ed25519-dalek = { version = "2.1.1", features = ["pkcs8"] }
 notify = "8.0.0"
+serde = { version = "1.0.219", features = ["derive"] }
 sha2 = "0.10.9"
