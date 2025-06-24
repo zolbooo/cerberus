@@ -19,14 +19,14 @@ pub struct FileIntegrityEvent {
  */
 pub fn monitor_file_integrity(
     path: &Path,
+    stop_signal: Arc<AtomicBool>,
     integrity_event_tx: std::sync::mpsc::Sender<FileIntegrityEvent>,
-) -> Result<(thread::JoinHandle<()>, Arc<AtomicBool>), Box<dyn Error>> {
+) -> Result<thread::JoinHandle<()>, Box<dyn Error>> {
     /*
      * This might look intimidating, but it's actually simple.
      * stop_signal is an atomic boolean that allows us to stop the thread gracefully.
      * init_result is a channel used to send the result of the initialization back to the main thread.
      */
-    let stop_signal = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (init_result_tx, init_result_rx) = std::sync::mpsc::channel();
 
     let file_path = path.to_owned();
@@ -75,5 +75,5 @@ pub fn monitor_file_integrity(
             "Thread has already finished",
         )));
     }
-    return Ok((thread_handle, stop_signal));
+    return Ok(thread_handle);
 }
