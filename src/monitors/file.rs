@@ -18,7 +18,7 @@ pub struct FileIntegrityEvent {
  * it computes the SHA-256 hash of the file and sends a `FileIntegrityEvent` to the provided channel.
  */
 pub fn monitor_file_integrity(
-    path: &str,
+    path: &Path,
     integrity_event_tx: std::sync::mpsc::Sender<FileIntegrityEvent>,
 ) -> Result<(thread::JoinHandle<()>, Arc<AtomicBool>), Box<dyn Error>> {
     /*
@@ -29,7 +29,7 @@ pub fn monitor_file_integrity(
     let stop_signal = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (init_result_tx, init_result_rx) = std::sync::mpsc::channel();
 
-    let file_path = Path::new(path).to_owned(); // Copy borrowed path to owned PathBuf
+    let file_path = path.to_owned();
     let thread_stop_signal = stop_signal.clone();
     let thread_handle = thread::spawn(move || {
         let (file_event_tx, file_event_rx) = std::sync::mpsc::channel();
