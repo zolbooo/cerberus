@@ -13,9 +13,8 @@ pub struct FileIntegrityEvent {
 
 /**
  * Monitors a file for integrity changes and sends events when the file is modified.
- *
- * Creates a thread that watches the specified file for modifications. When a modification is detected,
- * it computes the SHA-256 hash of the file and sends a `FileIntegrityEvent` to the provided channel.
+ * Creates a thread that watches the specified file for modifications.
+ * When a modification is detected, it computes the SHA-256 hash of the file and sends a `FileIntegrityEvent` to the provided channel.
  */
 pub fn monitor_file_integrity(
     path: &Path,
