@@ -2,7 +2,7 @@ use ed25519_dalek::{SigningKey, pkcs8::DecodePrivateKey};
 use std::path::Path;
 use tracing::{Level, event, instrument};
 
-use crate::config::InputConfig;
+use crate::config::{Config, InputConfig, SignedConfig};
 
 pub fn gen_config(key_path: &Path, input_config_path: &Path, output_path: &Path) {
     if !key_path.exists() {
@@ -14,45 +14,30 @@ pub fn gen_config(key_path: &Path, input_config_path: &Path, output_path: &Path)
         eprintln!("Failed to read key file: {}", key_der.unwrap_err());
         return;
     }
-    let key = SigningKey::from_pkcs8_der(&key_der.unwrap());
+    let mut key = SigningKey::from_pkcs8_der(&key_der.unwrap());
     if key.is_err() {
         eprintln!("Failed to parse signing key: {}", key.unwrap_err());
         return;
     }
 
-    let input_config_file = std::fs::read_to_string(input_config_path);
-    if input_config_file.is_err() {
-        eprintln!(
-            "Failed to read input config file: {}",
-            input_config_file.unwrap_err()
-        );
-        return;
-    }
-    let input_config = toml::from_str::<InputConfig>(input_config_file.unwrap().as_str());
+    let input_config = InputConfig::from_file(input_config_path);
     if input_config.is_err() {
         eprintln!(
-            "Failed to parse input config: {}",
+            "Failed to load input config from file: {}",
             input_config.unwrap_err()
         );
         return;
     }
 
-    let signed_config =
-        crate::config::prepare_signed_config(input_config.unwrap(), &mut key.unwrap());
-    if signed_config.is_err() {
-        eprintln!(
-            "Failed to prepare signed config: {}",
-            signed_config.unwrap_err()
-        );
-        return;
-    }
+    let config = Config::from_input_config(input_config.unwrap(), key.as_mut().unwrap());
 
+    let signed_config = config.unwrap().sign(key.as_mut().unwrap());
     let file = std::fs::File::create(output_path);
     if file.is_err() {
         eprintln!("Failed to create output file: {}", file.unwrap_err());
         return;
     }
-    if let Err(e) = ciborium::into_writer(&signed_config.unwrap(), file.unwrap()) {
+    if let Err(e) = ciborium::into_writer(&signed_config, file.unwrap()) {
         eprintln!("Failed to write signed configuration: {}", e);
         return;
     }
@@ -75,28 +60,18 @@ pub fn test_config(config_path: &Path) {
         "Reading config file: {}",
         config_path.display()
     );
-    let config_bytes = std::fs::read(config_path);
-    if config_bytes.is_err() {
-        event!(
-            Level::ERROR,
-            "Failed to read config file: {}",
-            config_bytes.unwrap_err()
-        );
-        return;
-    }
-    let signed_config = ciborium::from_reader::<crate::config::SignedConfig, &[u8]>(
-        config_bytes.unwrap().as_slice(),
-    );
+
+    let signed_config = SignedConfig::from_file(config_path);
     if signed_config.is_err() {
         event!(
             Level::ERROR,
-            "Failed to parse signed config: {}",
+            "Failed to load signed config from file: {}",
             signed_config.as_ref().unwrap_err()
         );
         return;
     }
 
-    let config = crate::config::load_verified_config(config_path);
+    let config = signed_config.unwrap().get_verified_config();
     if config.is_err() {
         event!(
             Level::ERROR,
