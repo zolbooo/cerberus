@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod crypto;
+mod device;
 mod integrity;
 mod monitors;
 
