@@ -1,0 +1,54 @@
+---
+- name: Set up secured instances
+  hosts: all
+  tasks:
+    - name: Check if Docker Compose is available
+      command: docker compose version
+      register: docker_compose_check
+      failed_when: false
+      changed_when: false
+    - name: Install Docker
+      include_role:
+        name: install-docker
+      when: docker_compose_check.rc != 0
+    - name: Check if Docker daemon config exists
+      command: test -f /etc/docker/daemon.json
+      register: docker_daemon_config_check
+      failed_when: false
+      changed_when: false
+    - name: Move Docker root directory
+      block:
+        - name: Stop Docker service (1/3)
+          service:
+            name: docker
+            state: stopped
+        - name: Stop Docker service (2/3)
+          service:
+            name: docker.socket
+            state: stopped
+        - name: Stop Docker service (3/3)
+          service:
+            name: containerd
+            state: stopped
+        - name: Move Docker root directory
+          command: mv /var/lib/docker /mnt/secure/docker
+        - name: Create Docker config file
+          copy:
+            dest: /etc/docker/daemon.json
+            content: |
+              {
+                "data-root": "/mnt/secure/docker"
+              }
+        - name: Start Docker services (1/3)
+          service:
+            name: docker
+            state: started
+        - name: Start Docker services (2/3)
+          service:
+            name: docker.socket
+            state: started
+        - name: Start Docker services (3/3)
+          service:
+            name: containerd
+            state: started
+      when: docker_daemon_config_check.rc != 0

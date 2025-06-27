@@ -1,0 +1,12 @@
+# See: https://docs.docker.com/engine/install/rhel/
+- name: Install dnf-plugins-core package
+  become: true
+  dnf:
+    name: dnf-plugins-core
+    state: present
+- name: Add Docker repository
+  become: true
+  shell:
+    cmd: dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+  args:
+    creates: /etc/yum.repos.d/docker-ce.repo
