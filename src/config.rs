@@ -13,6 +13,7 @@ pub struct SystemState {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InputConfig {
     system: SystemState,
+    mapper_device_name: String,
 }
 
 impl InputConfig {
@@ -30,6 +31,7 @@ impl InputConfig {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub system_state: SystemState,
+    pub mapper_device_name: String,
     pub app_signature: Vec<u8>,
 }
 
@@ -43,6 +45,7 @@ impl Config {
         let app_signature = signing_key.sign(executable_bytes.as_slice());
         Ok(Config {
             system_state: input.system,
+            mapper_device_name: input.mapper_device_name,
             app_signature: app_signature.to_bytes().to_vec(),
         })
     }
@@ -119,6 +122,7 @@ mod test {
                 shadow_hash: "test_shadow_hash".to_string(),
                 passwd_hash: "test_passwd_hash".to_string(),
             },
+            mapper_device_name: "test_mapper_device".to_string(),
         };
         let config = Config::from_input_config(input_config, &mut get_private_key());
         assert!(config.is_ok());
