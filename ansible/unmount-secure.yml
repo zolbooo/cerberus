@@ -1,0 +1,23 @@
+---
+- name: Unmount encrypted partition
+  hosts: hardened
+  tasks:
+    - name: Stop Docker services
+      become: true
+      service:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - docker
+        - docker.socket
+        - containerd
+    - name: Unmount secure partition
+      become: true
+      mount:
+        path: "{{ secure_volume_path }}"
+        state: unmounted
+    - name: Unload LUKS partition
+      become: true
+      community.crypto.luks_device:
+        name: "{{ secure_volume_name }}"
+        state: absent

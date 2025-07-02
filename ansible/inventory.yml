@@ -2,6 +2,7 @@ all:
   children:
     hardened:
       vars:
+        secure_volume_name: vda2_crypt
         secure_volume_path: /mnt/secure
       hosts:
         spark-primary:

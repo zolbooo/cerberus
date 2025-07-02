@@ -1,0 +1,29 @@
+---
+- name: Unmount encrypted partition
+  hosts: hardened
+  tasks:
+    - name: Unmount secure partition
+      become: true
+      mount:
+        path: "{{ secure_volume_path }}"
+        state: unmounted
+    - name: Unload LUKS partition
+      become: true
+      vars_prompt:
+        passphrase:
+          prompt: "Enter passphrase for LUKS device {{ secure_volume_name }}"
+          private: yes
+      community.crypto.luks_device:
+        device: "{{ secure_volume_path }}"
+        passphrase: "{{ passphrase }}"
+        name: "{{ secure_volume_name }}"
+        state: present
+    - name: Start Docker services
+      become: true
+      service:
+        name: "{{ item }}"
+        state: started
+      loop:
+        - docker
+        - docker.socket
+        - containerd
