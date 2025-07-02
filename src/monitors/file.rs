@@ -1,13 +1,17 @@
-use crate::crypto::hash;
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
-use std::error::Error;
+use crate::crypto::hash::sha256_file;
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, atomic::Ordering};
-use std::{io, thread};
+use tokio::sync::mpsc::Receiver;
+use tokio_util::sync::CancellationToken;
+use tracing::{error, warn};
 
+pub enum FileIntegrityEvent {
+    FileModification(FileModificationDetails),
+    WatchError,
+    HashError,
+}
 #[derive(Debug)]
-pub struct FileIntegrityEvent {
+pub struct FileModificationDetails {
     pub hash: [u8; 32],
 }
 
@@ -18,61 +22,57 @@ pub struct FileIntegrityEvent {
  */
 pub fn monitor_file_integrity(
     path: &Path,
-    stop_signal: Arc<AtomicBool>,
-    integrity_event_tx: std::sync::mpsc::Sender<FileIntegrityEvent>,
-) -> Result<thread::JoinHandle<()>, Box<dyn Error>> {
-    /*
-     * This might look intimidating, but it's actually simple.
-     * stop_signal is an atomic boolean that allows us to stop the thread gracefully.
-     * init_result is a channel used to send the result of the initialization back to the main thread.
-     */
-    let (init_result_tx, init_result_rx) = std::sync::mpsc::channel();
-
+    cancellation_token: &CancellationToken,
+) -> Receiver<FileIntegrityEvent> {
+    let (tx, rx) = tokio::sync::mpsc::channel::<FileIntegrityEvent>(1);
     let file_path = path.to_owned();
-    let thread_stop_signal = stop_signal.clone();
-    let thread_handle = thread::spawn(move || {
-        let (file_event_tx, file_event_rx) = std::sync::mpsc::channel();
-        let mut watcher: RecommendedWatcher = match Watcher::new(file_event_tx, Config::default()) {
-            Ok(w) => w,
-            Err(e) => {
-                init_result_tx.send(Err(Box::new(e))).unwrap();
-                return;
-            }
-        };
-        if let Err(e) = watcher.watch(&file_path, RecursiveMode::NonRecursive) {
-            init_result_tx.send(Err(Box::new(e))).unwrap();
+    let mut last_known_hash: [u8; 32] = [0; 32];
+    let token = cancellation_token.clone();
+    tokio::spawn(async move {
+        let watch_path = file_path.clone();
+        let watcher = RecommendedWatcher::new(
+            move |result| {
+                if let Err(e) = result {
+                    error!("Error receiving file watch event: {}", e);
+                    let _ = tx.blocking_send(FileIntegrityEvent::WatchError);
+                    return;
+                }
+                let event: Event = result.unwrap();
+                if !event.kind.is_modify() {
+                    return;
+                }
+
+                let hash = sha256_file(&file_path);
+                if let Err(e) = hash {
+                    error!("Error computing file hash: {}", e);
+                    let _ = tx.blocking_send(FileIntegrityEvent::HashError);
+                    return;
+                }
+                let file_hash = hash.unwrap();
+                if file_hash != last_known_hash {
+                    last_known_hash = file_hash;
+                    if let Err(e) = tx.blocking_send(FileIntegrityEvent::FileModification(
+                        FileModificationDetails { hash: file_hash },
+                    )) {
+                        warn!("Error sending file integrity event: {}", e);
+                    }
+                }
+            },
+            Config::default(),
+        );
+        if let Err(e) = watcher {
+            error!("Error watching file: {}", e);
             return;
         }
-
-        let handle_file_event = |last_known_hash: &mut [u8; 32]| -> Result<(), Box<dyn Error>> {
-            let file_event = file_event_rx.recv()??;
-            if file_event.kind.is_modify() {
-                let file_hash = hash::sha256_file(&file_path)?;
-                if &file_hash != last_known_hash {
-                    *last_known_hash = file_hash;
-                    integrity_event_tx.send(FileIntegrityEvent { hash: file_hash })?;
-                }
-            }
-            Ok(())
-        };
-
-        init_result_tx.send(Ok(())).unwrap();
-
-        let mut last_known_hash: [u8; 32] = [0; 32];
-        while thread_stop_signal.load(Ordering::Acquire) == false {
-            let _ = handle_file_event(&mut last_known_hash);
+        let mut watcher = watcher.unwrap();
+        if let Err(e) = watcher.watch(&watch_path, RecursiveMode::NonRecursive) {
+            error!("Error watching file: {}", e);
+            return;
+        }
+        token.cancelled().await;
+        if let Err(e) = watcher.unwatch(&watch_path) {
+            error!("Error unwatching file: {}", e);
         }
     });
-
-    match init_result_rx.recv()? {
-        Ok(()) => {}
-        Err(e) => return Err(e),
-    }
-    if thread_handle.is_finished() {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::Other,
-            "Thread has already finished",
-        )));
-    }
-    return Ok(thread_handle);
+    return rx;
 }
