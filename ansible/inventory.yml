@@ -1,4 +1,15 @@
 all:
+  vars:
+    sudo_user_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICHAWq/N8I40Ng6j3z55QtrP00LQzYcPlxuKq4XKF3fO
+  hosts:
+    clickhouse:
+      ansible_user: root
+      ansible_host: 192.82.67.228
+      ansible_port: 22226
+    minio:
+      ansible_user: root
+      ansible_host: 192.82.67.228
+      ansible_port: 22229
   children:
     hardened:
       vars:
