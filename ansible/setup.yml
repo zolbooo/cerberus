@@ -1,6 +1,6 @@
 ---
-- name: Set up secured instances
-  hosts: all
+- name: Set up hardened instances
+  hosts: hardened
   tasks:
     - name: Check if Docker Compose is available
       command: docker compose version
