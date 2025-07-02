@@ -1,23 +1,25 @@
 ---
 - name: Unmount encrypted partition
   hosts: hardened
+  vars_prompt:
+    - name: passphrase
+      prompt: Enter passphrase for LUKS partition
+      private: yes
   tasks:
-    - name: Unmount secure partition
+    - name: Open LUKS partition
       become: true
-      mount:
-        path: "{{ secure_volume_path }}"
-        state: unmounted
-    - name: Unload LUKS partition
-      become: true
-      vars_prompt:
-        passphrase:
-          prompt: "Enter passphrase for LUKS device {{ secure_volume_name }}"
-          private: yes
       community.crypto.luks_device:
         device: "{{ secure_volume_path }}"
         passphrase: "{{ passphrase }}"
         name: "{{ secure_volume_name }}"
-        state: present
+        state: opened
+    - name: Mount secure partition
+      become: true
+      mount:
+        src: "/dev/mapper/{{ secure_volume_name }}"
+        path: "{{ secure_volume_path }}"
+        fstype: ext4
+        state: mounted
     - name: Start Docker services
       become: true
       service:
