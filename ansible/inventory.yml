@@ -1,5 +1,6 @@
 all:
   vars:
+    sudo_user: unitel
     sudo_user_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICHAWq/N8I40Ng6j3z55QtrP00LQzYcPlxuKq4XKF3fO
   hosts:
     clickhouse:

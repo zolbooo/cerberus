@@ -6,6 +6,14 @@
       prompt: Enter passphrase for LUKS partition
       private: yes
   tasks:
+    - name: Disallow user to run sudo
+      become: true
+      community.general.sudoers:
+        name: "{{ sudo_user }}-root"
+        user: "{{ sudo_user }}"
+        nopassword: false
+        commands: ALL
+        state: absent
     - name: Open LUKS partition
       become: true
       community.crypto.luks_device:

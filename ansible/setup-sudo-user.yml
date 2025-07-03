@@ -1,8 +1,6 @@
 ---
 - name: Create a sudo user
   hosts: all
-  vars:
-    sudo_user: unitel
   vars_prompt:
     - name: sudo_user_password
       prompt: "Enter password for the sudo user {{ sudo_user }}"
