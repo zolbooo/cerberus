@@ -6,6 +6,12 @@
       prompt: Enter passphrase for LUKS partition
       private: yes
   tasks:
+    - name: Disable cloudResetPwdAgent service
+      become: true
+      service:
+        name: cloudResetPwdAgent
+        state: stopped
+        enabled: false
     - name: Disallow user to run sudo
       become: true
       community.general.sudoers:
