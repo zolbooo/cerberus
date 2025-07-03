@@ -23,31 +23,9 @@
       prompt: Enter passphrase for LUKS partition
       private: yes
   tasks:
-    - name: Open LUKS partition
-      become: true
-      community.crypto.luks_device:
-        device: "{{ luks_device_path }}"
-        passphrase: "{{ passphrase }}"
-        name: "{{ luks_volume_name }}"
-        state: opened
-    - name: Ensure filesystem on an encrypted partition
-      become: true
-      filesystem:
-        fstype: ext4
-        dev: "/dev/mapper/{{ luks_volume_name }}"
-    - name: Create a mount point for the partition
-      become: true
-      file:
-        path: "{{ luks_volume_mount_path }}"
-        mode: "0770"
-        state: directory
-    - name: Mount secure partition
-      become: true
-      mount:
-        src: "/dev/mapper/{{ luks_volume_name }}"
-        path: "{{ luks_volume_mount_path }}"
-        fstype: ext4
-        state: mounted
+    - name: Set up LUKS partition
+      include_role:
+        name: luks-volume
     - name: Check if Docker Compose is available
       command: docker compose version
       register: docker_compose_check
