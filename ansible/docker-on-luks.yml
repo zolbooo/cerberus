@@ -1,10 +1,6 @@
 ---
-- name: Unmount encrypted partition
-  hosts: hardened
-  vars_prompt:
-    - name: passphrase
-      prompt: Enter passphrase for LUKS partition
-      private: yes
+- name: Prepare a system
+  hosts: all
   tasks:
     - name: Disable cloudResetPwdAgent service
       become: true
@@ -20,6 +16,13 @@
         nopassword: false
         commands: ALL
         state: absent
+- name: Prepare Docker on LUKS partition
+  hosts: hardened
+  vars_prompt:
+    - name: passphrase
+      prompt: Enter passphrase for LUKS partition
+      private: yes
+  tasks:
     - name: Open LUKS partition
       become: true
       community.crypto.luks_device:
