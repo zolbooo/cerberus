@@ -14,8 +14,9 @@ all:
   children:
     hardened:
       vars:
-        secure_volume_name: vda2_crypt
-        secure_volume_path: /mnt/secure
+        luks_device_path: /dev/vda2
+        luks_volume_name: datalake-secure
+        luks_volume_mount_path: /mnt/secure
       hosts:
         spark-primary:
           ansible_user: root

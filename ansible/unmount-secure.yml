@@ -14,10 +14,10 @@
     - name: Unmount secure partition
       become: true
       mount:
-        path: "{{ secure_volume_path }}"
+        path: "{{ luks_volume_mount_path }}"
         state: unmounted
     - name: Unload LUKS partition
       become: true
       community.crypto.luks_device:
-        name: "{{ secure_volume_name }}"
+        name: "{{ luks_volume_name }}"
         state: absent
