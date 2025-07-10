@@ -14,39 +14,46 @@ all:
   children:
     hardened:
       vars:
-        luks_device_path: /dev/vda2
         luks_volume_name: datalake-secure
         luks_volume_mount_path: /mnt/secure
-      hosts:
-        spark-primary:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22220
-        hadoop-yarn:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22221
-        airflow:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22222
-        atlas:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22223
-        spark-worker1:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22224
-        spark-worker2:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22225
-        config:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22227
-        source-control:
-          ansible_user: root
-          ansible_host: 192.82.67.228
-          ansible_port: 22228
+      children:
+        encrypted_disk:
+          vars:
+            luks_device_path: /dev/vdb
+          hosts:
+            airflow:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22222
+            atlas:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22223
+            spark-primary:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22220
+            spark-worker1:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22224
+            spark-worker2:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22225
+        encrypted_volume:
+          vars:
+            luks_device_path: /dev/vda2
+          hosts:
+            hadoop-yarn:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22221
+            config:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22227
+            source-control:
+              ansible_user: root
+              ansible_host: 192.82.67.228
+              ansible_port: 22228
