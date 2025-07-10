@@ -1,0 +1,43 @@
+---
+- name: Create an encrypted LVM partition
+  hosts: encrypted_lvm
+  vars_prompt:
+    - name: passphrase
+      prompt: Enter passphrase for LUKS partition
+      private: true
+  tasks:
+    - name: Create LVM physical volumes
+      lvg:
+        vg: "{{ vg_name }}"
+        pvs: "{{ lvm_pvs }}"
+        state: present
+    - name: Create LVM logical volume
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: "{{ lv_name }}"
+        state: present
+    - name: Set up LUKS on the logical volume
+      become: true
+      community.crypto.luks_device:
+        device: "/dev/{{ vg_name }}/{{ lv_name }}"
+        passphrase: "{{ passphrase }}"
+        name: "{{ luks_volume_name }}"
+        state: opened
+    - name: Ensure filesystem on an encrypted partition
+      become: true
+      filesystem:
+        fstype: ext4
+        dev: "/dev/mapper/{{ luks_volume_name }}"
+    - name: Create a mount point for the partition
+      become: true
+      file:
+        path: "{{ luks_volume_mount_path }}"
+        mode: "0770"
+        state: directory
+    - name: Mount secure partition
+      become: true
+      mount:
+        src: "/dev/mapper/{{ luks_volume_name }}"
+        path: "{{ luks_volume_mount_path }}"
+        fstype: ext4
+        state: mounted

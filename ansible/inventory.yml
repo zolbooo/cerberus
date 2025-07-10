@@ -17,9 +17,14 @@ all:
         luks_volume_name: datalake-secure
         luks_volume_mount_path: /mnt/secure
       children:
-        encrypted_disk:
+        encrypted_lvm:
           vars:
+            vg_name: datalake-vg
+            lv_name: datalake-lv # lv stands for logical volume in LVM
             luks_device_path: /dev/vdb
+            lvm_pvs: # PV stands for physical volume in LVM
+              - /dev/vda2
+              - /dev/vdb
           hosts:
             airflow:
               ansible_user: root
