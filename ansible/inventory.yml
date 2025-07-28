@@ -2,6 +2,11 @@ all:
   vars:
     sudo_user: unitel
     sudo_user_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICHAWq/N8I40Ng6j3z55QtrP00LQzYcPlxuKq4XKF3fO
+    admin_users:
+      - name: oleg
+        ssh_public_key: "{{ lookup('file', 'files/oleg.pub') }}"
+      - name: tulgaa
+        ssh_public_key: "{{ lookup('file', 'files/tulgaa.pub') }}"
   hosts:
     clickhouse:
       ansible_user: root
