@@ -8,7 +8,7 @@
         name: "{{ item.name }}"
         shell: /bin/bash
         state: present
-        password: none
+        password: "{{ item.password | default('none') }}"
       with_items: "{{ admin_users }}"
     - name: Add public key to the admin user
       become: true
@@ -17,12 +17,35 @@
         state: present
         key: "{{ item.ssh_public_key }}"
       with_items: "{{ admin_users }}"
-    - name: Allow user to run sudo with a password
+    - name: Configure sudo permissions
       become: true
       community.general.sudoers:
         name: "{{ item.name }}"
         user: "{{ item.name }}"
-        nopassword: true
+        nopassword: "{{ item.password is not defined }}"
         commands: ALL
         state: present
       with_items: "{{ admin_users }}"
+    - name: Disable root login for SSH
+      become: true
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/001-disable-root-login.conf
+        line: "PermitRootLogin no"
+        state: present
+        create: true
+      notify: Restart SSHd
+    - name: Disable password authentication for SSH
+      become: true
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/002-disable-password-auth.conf
+        line: "PasswordAuthentication no"
+        state: present
+        create: true
+      notify: Restart SSHd
+  handlers:
+    - name: Restart SSHd
+      become: true
+      service:
+        name: sshd
+        state: restarted
+        enabled: true

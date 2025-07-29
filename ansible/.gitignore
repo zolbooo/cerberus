@@ -1,2 +1,4 @@
 # SSH secret keys
 *.pem
+
+secrets/
