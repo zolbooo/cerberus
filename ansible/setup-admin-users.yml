@@ -2,12 +2,18 @@
 - name: Create a admin users
   hosts: all
   tasks:
+    - name: Create datalake group
+      become: true
+      group:
+        name: datalake
+        state: present
     - name: Create a admin user
       become: true
       user:
         name: "{{ item.name }}"
         shell: /bin/bash
         state: present
+        group: datalake
         password: "{{ item.password | default('none') }}"
       with_items: "{{ admin_users }}"
     - name: Add public key to the admin user
