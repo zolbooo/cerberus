@@ -10,6 +10,8 @@ all:
         ssh_public_key: "{{ lookup('file', 'files/oleg.pub') }}"
       - name: tulgaa
         ssh_public_key: "{{ lookup('file', 'files/tulgaa.pub') }}"
+      - name: erdenebayar
+        ssh_public_key: "{{ lookup('file', 'files/erdenebayar.pub') }}"
       - name: ansible
         ssh_public_key: "{{ lookup('file', 'files/ansible.pub') }}"
         password: "{{ lookup('password',  'secrets/ansible_user_password', length=24, encrypt='sha512_crypt') }}"
