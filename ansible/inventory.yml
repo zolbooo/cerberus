@@ -3,9 +3,7 @@ all:
     ansible_user: ansible
     ansible_ssh_private_key_file: secrets/ansible.pem
     ansible_become_password: "{{ lookup('password', 'secrets/ansible_user_password', length=24) }}"
-    sudo_user: unitel
-    sudo_user_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICHAWq/N8I40Ng6j3z55QtrP00LQzYcPlxuKq4XKF3fO
-    admin_users:
+    users:
       - name: oleg
         ssh_public_key: "{{ lookup('file', 'files/oleg.pub') }}"
       - name: tulgaa
@@ -15,6 +13,10 @@ all:
       - name: ansible
         ssh_public_key: "{{ lookup('file', 'files/ansible.pub') }}"
         password: "{{ lookup('password',  'secrets/ansible_user_password', length=24, encrypt='sha512_crypt') }}"
+      - name: unitel
+        ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICHAWq/N8I40Ng6j3z55QtrP00LQzYcPlxuKq4XKF3fO
+        password: "{{ lookup('password',  'secrets/unitel_user_password', length=24, encrypt='sha512_crypt') }}"
+        no_sudo: true
   hosts:
     clickhouse:
       ansible_host: 192.82.67.228

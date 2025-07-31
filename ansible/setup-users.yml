@@ -1,5 +1,5 @@
 ---
-- name: Create a admin users
+- name: Create a users
   hosts: all
   tasks:
     - name: Create datalake group
@@ -7,7 +7,7 @@
       group:
         name: datalake
         state: present
-    - name: Create a admin user
+    - name: Create a user
       become: true
       user:
         name: "{{ item.name }}"
@@ -15,14 +15,14 @@
         state: present
         group: datalake
         password: "{{ item.password | default('none') }}"
-      with_items: "{{ admin_users }}"
-    - name: Add public key to the admin user
+      with_items: "{{ users }}"
+    - name: Add SSH public key for the user
       become: true
       authorized_key:
         user: "{{ item.name }}"
         state: present
         key: "{{ item.ssh_public_key }}"
-      with_items: "{{ admin_users }}"
+      with_items: "{{ users }}"
     - name: Configure sudo permissions
       become: true
       community.general.sudoers:
@@ -30,8 +30,8 @@
         user: "{{ item.name }}"
         nopassword: "{{ item.password is not defined }}"
         commands: ALL
-        state: present
-      with_items: "{{ admin_users }}"
+        state: "{{ 'present' if item.no_sudo is not defined or not item.no_sudo else 'absent' }}"
+      with_items: "{{ users }}"
     - name: Disable root login for SSH
       become: true
       lineinfile:
